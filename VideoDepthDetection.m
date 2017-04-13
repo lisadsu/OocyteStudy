@@ -6,20 +6,32 @@
 % Livia Zarnescu Yanez
 % 7-5-16
 
-nameToSave = 'E1_GV'; 
-manualPip = 0; % detect pipette edge based off its corner or not
+% Newest edits to handle data from Lab Desktop
+% Lisa Su
+% 4-13-17
+
+nameToSave = '1'; 
+manualPip = 1; % detect pipette edge based off its corner or not
 manualCorner = 0; % manually select ROI
 manualMeasure = 0;
 
-addpath('C:\Users\Livia\Desktop\IVF\Code\EmbryoProject');
-addpath('C:\Users\Livia\Desktop\IVF\Code\EmbryoProject\functions');
-addpath('C:\Users\Livia\Desktop\IVF\Code\EmbryoProject\OocyteStudies');
+% addpath('C:\Users\Livia\Desktop\IVF\Code\EmbryoProject');
+% addpath('C:\Users\Livia\Desktop\IVF\Code\EmbryoProject\functions');
+% addpath('C:\Users\Livia\Desktop\IVF\Code\EmbryoProject\OocyteStudies');
 
-basePath = 'C:/Users/Livia/Desktop/IVF/Raw Data/Videos/Human/HumanOocyteMeas';
+%when using desktop in the corner
+addpath('C:\Users\CamLab\Desktop\Lisa\EmbryoProject-master');
+addpath('C:\Users\CamLab\Desktop\Lisa\EmbryoProject-master\functions');
+addpath('C:\Users\CamLab\Desktop\Lisa\EmbryoProject-master\OocyteStudies');
+
+% basePath = 'C:/Users/Livia/Desktop/IVF/Raw Data/Videos/Human/HumanOocyteMeas';
+%Find videos on the server
+basePath = 'Z:\Data\IVF\OocyteClinicalStudy\RawData';
+
 cd(basePath);
 [fileName, pathName] = uigetfile('*.avi');
 pipSize = 30; % total pipette diameter
-pressureApplied = .1;
+pressureApplied = .1; %%%DOES THIS NEED TO CHANGE? to 0.345psi? 
 frameStartMult = .45; % seconds at which to start video
 frameMult = 1.2; % how many seconds of video to load
 cannyThresh = .35;
