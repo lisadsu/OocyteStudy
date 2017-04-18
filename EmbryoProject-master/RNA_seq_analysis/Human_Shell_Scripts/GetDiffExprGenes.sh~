@@ -1,0 +1,10 @@
+#!/bin/bash
+
+file="/host/Users/Livia/Desktop/IVF/RnaSeqAnalysis/RawData/MouseHiSeq/CuffDiffOut_v2.0.2_justgoodbad/genes_good_bad.txt"
+
+while IFS=: read -r f1 f2 f3
+do
+        # display fields using f1, f2,..,f7
+        echo "Name: $f1, Bad Expr: $f7, Good Expr: $f6"
+
+done <"$file"

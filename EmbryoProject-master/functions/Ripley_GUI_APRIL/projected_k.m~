@@ -1,0 +1,105 @@
+function out = projected_k()
+
+% HARDCODED T
+t = 1:30
+side =100;
+
+%allow the user to specify where to load the settings file
+dirname = uigetdir('', 'Pick a folder containing ascii file distributions');
+    if isequal(dirname,0)
+       return
+    end
+       
+%construct the path name
+loadDataName = fullfile(dirname,'*.ascii');
+
+%list all data files in the folder
+filelist = dir(loadDataName);
+
+% Load all distributions to dist_array
+dist_array = [];
+for i = 1:length(filelist)
+    if (~filelist(i).isdir)
+        filename = filelist(i).name;
+        % Check the file is valid
+        try
+            data = dlmread(fullfile(dirname, filename));
+        catch
+            error_msg{1} = filename;
+            error_msg{2} = 'Cant read file. Please check the format';
+            error_msg{3} = lasterr;
+            errordlg(error_msg,'File error');
+            continue;
+        end
+        if size(data,2) < 3
+            error_msg{1} = filename;
+            error_msg{2} =  'The input doesnt have the expected format.';
+            error_msg{3} = 'Expected three columns delimited with comma, space or tab';
+            errordlg(error_msg ,'File error');
+            continue;
+        end
+        if any(any(isnan(data))) || any(any(isinf(data)))
+            error_msg{1} = filename;
+            error_msg{2} = 'Input file contains non-finite numbers';
+            errordlg(error_msg,'File error');
+            continue;
+        end
+        % Get data from the file
+        dist_array{i} = data;
+    end
+end
+
+% Use Divide on all distributions
+pos = 1;
+divided_array = [];
+for i = 1:length(dist_array) 
+    parts = divide(dist_array{i},0);
+    for j = 1:length(parts)
+        divided_array{pos} = parts{1,j};
+        pos = pos+1;
+    end
+end    
+   
+
+%project on xy plane
+lambdas = [];
+Ks = [];
+
+w = waitbar(0,'Calculating k functions');
+for i = 1:length(divided_array)
+    waitbar(j/length(divided_array),w);
+    X = divided_array{i}(:,1);
+    Y = divided_array{i}(:,2);
+    A = abs(max(X)-min(X))*abs(max(Y)-min(Y));
+    lambda_data = length(X)/V;
+    lambdas = [lambdas lambda_data];
+    rip_data = RipleyK_comuse(divided_array{i}(:,1:2), t,0,0);
+    EK = rip_data.EK;
+    Ks = [Ks; rip_data.K];
+end
+lambda_hat = mean(lambdas);
+K_hat = mean(Ks);
+close(w);
+
+% save lambda
+out.lambda = lambda_hat;
+
+%plot the estimated K
+figure, hold on
+for i=1:size(Ks,1)
+    plot(t, Ks(i,:),'-r')
+end
+plot(t, K_hat,'-sr','LineWidth',2,'MarkerEdgeColor','k','MarkerFaceColor','red','MarkerSize',2)
+title('Estimated K'), xlabel('t'), ylabel('K(t)')
+
+
+
+
+
+    
+    
+    
+    
+    
+    
+    

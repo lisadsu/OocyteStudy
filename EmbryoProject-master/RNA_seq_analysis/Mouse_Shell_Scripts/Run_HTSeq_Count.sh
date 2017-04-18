@@ -1,0 +1,90 @@
+#!/bin/bash
+
+BASE_DIR="/host/Users/Livia/Desktop/IVF/RnaSeqAnalysis/RawData/MouseHiSeq"
+RAW_DATA_DIR="/host/Users/Livia/Desktop/IVF/RnaSeqAnalysis/RawData/MouseHiSeq/ClippedTrimmed"
+
+declare -a sampleNum=(1 2 3 4 5 6)
+declare -a sampleName=("bad1" "bad2" "good1" "good2" "mixed1" "mixed2")
+
+#declare -a sampleNum=(1)
+#declare -a sampleName=("good2")
+
+RVAL=150
+
+cd $BASE_DIR
+
+# uncomment this if no transcriptome index previously built by TopHat
+# tophat2 -G $REF_GTF_HUMAN --transcriptome-index ./transcriptome_data/known $HUMAN_GENOME
+
+# loop over samples
+for i in ${sampleNum[@]}
+do
+	##############################
+	# Run Tophat for each sample #
+	##############################
+
+	FILENAME_IN=${sampleName[$i - 1]}
+
+	echo ""
+	echo "now running TopHat for sample : "$FILENAME_IN
+
+#	tophat2 --no-discordant --no-mixed -p 2 -r $RVAL -G $REF_GTF_MOUSE -o "./TophatOut_"$FILENAME_IN"_paired" --transcriptome-index "./transcriptome_data/known" --transcriptome-only $MOUSE_GENOME "./ClippedTrimmed/"$FILENAME_IN"_R1_stillpaired.fastq" "./ClippedTrimmed/"$FILENAME_IN"_R2_stillpaired.fastq"
+
+#	tophat2 --no-discordant --no-mixed -p 2 -r $RVAL -G $REF_GTF_MOUSE -o "./TophatOut_"$FILENAME_IN"_singles" --transcriptome-index "./transcriptome_data/known" --transcriptome-only $MOUSE_GENOME "./ClippedTrimmed/"$FILENAME_IN"_singles.fastq"
+
+
+done
+
+
+
+SAMPLE_BASE_DIR="/host/Users/Livia/Desktop/IVF/RnaSeqAnalysis/RawData/MouseHiSeq/"
+#declare -a samples=("bad1" "bad2" "good1" "good2" "mixed1" "mixed2")
+declare -a samples=("good2")
+
+cd $SAMPLE_BASE_DIR
+mkdir -p "./HTSeq_Count_Out"
+
+# first sort .bam files
+for BASENAME in ${samples[@]}
+do
+	
+	echo "now sorting .bam files and running HTSeq-count"
+
+	# make sorted bam file
+#	samtools sort -n "./TophatOut_"$BASENAME"_paired/accepted_hits.bam" "./"$BASENAME"_bam/"$BASENAME"_pairedonly_sorted"
+
+	# then run HTSeq-count
+#	python -m HTSeq.scripts.count -f bam "./"$BASENAME"_bam/"$BASENAME"_pairedonly_sorted.bam" "./transcriptome_data/known.gff" > "./HTSeq_Count_Out/"$BASENAME"_paired_count.txt"
+
+
+done
+
+echo "now running CuffDiff"
+
+# Put .bam files into CuffDiff 2.0.2
+# but only sorted paired end ones
+
+cuffdiff -o ./CuffDiffOut_v2.0.2_justgoodbad_concordantpairsonly -L bad,good -p 4 -b $MOUSE_GENOME_FASTA -u $REF_GTF_MOUSE $SAMPLE_BASE_DIR"TophatOut_bad1_paired/accepted_hits.bam",$SAMPLE_BASE_DIR"TophatOut_bad2_paired/accepted_hits.bam" $SAMPLE_BASE_DIR"TophatOut_good1_paired/accepted_hits.bam",$SAMPLE_BASE_DIR"TophatOut_good2_paired/accepted_hits.bam"
+
+# Put .bam files into CuffDiff 2.1.1
+# but only sorted paired end ones
+
+/home/livia/Desktop/RNA_seq_analysis/cufflinks-2.1.1/cuffdiff -o ./CuffDiffOut_v2.1.1_justgoodbad_concordantpairsonly -L bad,good -p 4 -b $MOUSE_GENOME_FASTA -u $REF_GTF_MOUSE $SAMPLE_BASE_DIR"TophatOut_bad1_paired/accepted_hits.bam",$SAMPLE_BASE_DIR"TophatOut_bad2_paired/accepted_hits.bam" $SAMPLE_BASE_DIR"TophatOut_good1_paired/accepted_hits.bam",$SAMPLE_BASE_DIR"TophatOut_good2_paired/accepted_hits.bam"
+
+
+# outputs of this script should be:
+# A) HTSeq-count output files called HTSeq_Count_Out/*_paired_count.txt
+#               - These will be merged into count tables for use with edgeR and DESeq
+# B) CuffDiff 2.0.2 output with just good and bad paired files 
+# 		- This will have a genes.read_group_tracking file with raw fragment counts
+#
+# Hopefully we can compare:
+# 	1) cuffdiff output with paired end only vs paired&single end reads
+#	2) cuffdiff raw frag counts with HTSeq raw read counts
+# 	3) cuffdiff output with DESeq / edgeR output
+
+
+
+
+
+

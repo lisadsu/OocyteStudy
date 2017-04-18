@@ -1,0 +1,39 @@
+#!/bin/bash
+
+BASE_DIR="/host/Users/Livia/Desktop/IVF/RnaSeqAnalysis/RawData/HumanHiSeq"
+
+cd $BASE_DIR
+mkdir -p "./HTSeq_Count_Out"
+
+declare -a sampleNum=(2 4 5 6 7 9 12 16 17 18 19 20)
+
+for SAMPLE in ${sampleNum[@]}
+do
+
+	FILENAME="S"$SAMPLE
+	mkdir -p "./"$FILENAME"_bam"
+
+	echo "now sorting .bam file and running HTSeq-count for sample "$FILENAME
+
+	# sort bam file
+	samtools sort -n "./Aligned/Bam/"$FILENAME".bam" "./"$FILENAME"_bam/"$FILENAME"_sorted"
+	
+	# then run HTSeq-count
+#	python -m HTSeq.scripts.count -f bam -o "./"$FILENAME"_bam/report_yes.sam" --stranded=yes "./"$FILENAME"_bam/"$FILENAME"_sorted.bam" $REF_GTF_HUMAN > "./HTSeq_Count_Out/"$FILENAME"_count_yes.txt"
+
+#	python -m HTSeq.scripts.count -f bam -o "./"$FILENAME"_bam/report_reverse.sam" --stranded=reverse "./"$FILENAME"_bam/"$FILENAME"_sorted.bam" $REF_GTF_HUMAN > "./HTSeq_Count_Out/"$FILENAME"_count_reverse.txt"
+
+# run HTSeq-count only with unstranded option
+	python -m HTSeq.scripts.count -f bam -o "./"$FILENAME"_bam/report_no.sam" --stranded=no "./"$FILENAME"_bam/"$FILENAME"_sorted.bam" $REF_GTF_HUMAN > "./HTSeq_Count_Out/"$FILENAME"_count_no.txt"
+
+
+done
+
+
+
+
+
+
+
+
+

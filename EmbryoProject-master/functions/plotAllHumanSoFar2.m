@@ -1,0 +1,454 @@
+% plot all human embryos so far
+
+clear all;
+% close all;
+figure;
+hold on;
+filePath1 = 'C:\Users\Livia\Desktop\IVF\Processed Data\Human analysis\';
+
+% whichToPlot(1) is 3-20-13, whichToPlot(2) is 4-2-13, both cleavage stage
+% 3 is 4-17-13, cleavage stage
+% 4 is 4-30-13, cleavage stage, none survived bc of incubator
+% 5-13-13 is 5, 2PN stage
+% 5-29-13 is 6, 2PN stage
+% whichToPlot(7) is 6-28-13, 2PN stage
+% whichToPlot(8) is 7-30-13, 2PN stage
+% whichToPlot(9) is 11-5-13, 2PN stage
+whichToPlot = [0 0 0 0 1 1 1 1 1];
+plotAuto = [zeros(1,8) 0 0 0 0 0 0 0 0 1];
+
+% ===== MAKE SURE NEW MORPHOLOGY DATA IS SAVED =====
+% =========== FILL IN HERE =========================
+saveNewMorphology('human');
+load('morphologyHuman.mat');
+
+% morphology results of all experiments so far
+% =========== FILL IN HERE ======================
+morphology = cell(1,length(whichToPlot));
+morphology{1} = morphology3_20_13;
+morphology{2} = morphology4_2_13;
+morphology{3} = morphology4_17_13;
+morphology{4} = morphology4_30_13;
+morphology{5} = morphology5_13_13;
+morphology{6} = morphology5_29_13;
+morphology{7} = morphology6_28_13;
+morphology{8} = morphology7_30_13;
+morphology{9} = morphology11_5_13;
+
+% time lapse parameters of all experiments so far
+% =========== FILL IN HERE ======================
+timeLapse = cell(1,length(whichToPlot));
+timeLapse{1} = timeLapse3_20_13;
+timeLapse{2} = timeLapse4_2_13;
+timeLapse{3} = timeLapse4_17_13;
+timeLapse{4} = timeLapse4_30_13;
+timeLapse{5} = timeLapse5_13_13;
+timeLapse{6} = timeLapse5_29_13;
+timeLapse{7} = timeLapse6_28_13;
+timeLapse{8} = timeLapse7_30_13;
+timeLapse{9} = timeLapse11_5_13;
+
+% dates of all experiments so far
+% =========== FILL IN HERE ======================
+dateList = cell(1,length(whichToPlot));
+dateList{1} = '3-20-13';
+dateList{2} = '4-2-13';
+dateList{3} = '4-17-13';
+dateList{4} = '4-30-13';
+dateList{5} = '5-13-13';
+dateList{6} = '5-29-13';
+dateList{7} = '6-28-13';
+dateList{8} = '7-30-13';
+dateList{9} = '11-5-13';
+
+dateList2 = cell(1,length(whichToPlot));
+for j = 1:length(whichToPlot)
+    dateU = dateList{j};
+    dateUI = strfind(dateU, '-');
+    dateU(dateUI) = '_';
+    dateList2{j} = dateU;
+end
+
+% for making legend to scatter plot
+legendList = cell(1,4);
+colorMat = [];
+k0list = [];
+k1list = [];
+n0list = [];
+taulist = [];
+elonglist = [];
+n1list = [];
+
+sumCell = cell(1,5);
+
+mList = [];
+
+timeLapseOut = [];
+
+for j = 1:length(whichToPlot)
+    if whichToPlot(j)
+        
+        cCurr = zeros(length(morphology{j}), 3);
+        s = size(cCurr(morphology{j} == 2, :));
+        cCurr(morphology{j} == 2, :) = repmat([0 0 .6], s(1), 1);
+        s = size(cCurr(morphology{j} == 3, :));
+        cCurr(morphology{j} == 3, :) = repmat([0 .6 .6], s(1), 1);
+        s = size(cCurr(morphology{j} == 4, :));
+        cCurr(morphology{j} == 4, :) = repmat([0 .6 0], s(1), 1);
+        s = size(cCurr(morphology{j} == 1, :));
+        cCurr(morphology{j} == 1, :) = repmat([1 0 0], s(1), 1);
+        s = size(cCurr(morphology{j} == 5, :));
+        cCurr(morphology{j} == 5, :) = repmat([.7 .7 0], s(1), 1);
+        
+        colorMat = [colorMat ; cCurr];
+        
+        filePath2 = [dateList{j} ' analysis human\aspiration_data_' ...
+            dateList2{j}];
+            
+        timeLapseOut = [timeLapseOut; timeLapse{j}];
+
+        
+        for i = 1:length(morphology{j})
+        
+        embryoString = num2str(i);
+        
+        if exist([filePath1 filePath2 '_human_E', embryoString, '.mat']) ...
+                && ~isnan(morphology{j}(i))
+            
+            load([filePath1 filePath2 '_human_E', embryoString, '.mat']);
+            
+            aspiration_depth = aspiration_depth * 40 * 10^-6 / 108; % convert from pixels to meters
+            mList = [mList morphology{j}(i)];
+            k0list = [k0list k0];
+            k1list = [k1list k1];
+            n0list = [n0list n0];
+            taulist = [taulist tau];
+            n1list = [n1list n1];
+            elonglist = [elonglist F0/(k0 + k1)];
+            
+            currColor = cCurr(i,:);
+            xdata = t;
+            ydata = aspiration_depth;
+            
+            plot(xdata, ydata, 'ob', 'Color', currColor);
+            hold on;
+            plot(xfine - min(xfine), yfit, 'Color', currColor);
+                         
+            sumCell{morphology{j}(i)} = [sumCell{morphology{j}(i)} ; yfit];
+            
+            % get first point of each color to add to scatterplot legend
+            if morphology{j}(i) == 1 && isempty(legendList{1})
+                currPoint = struct('k1', k1, 'n1', n1, 'tau', tau, 'k0', k0);
+                legendList{1} = currPoint;
+            elseif morphology{j}(i) == 2 && isempty(legendList{2})
+                currPoint = struct('k1', k1, 'n1', n1, 'tau', tau, 'k0', k0);
+                legendList{2} = currPoint;
+            elseif morphology{j}(i) == 3 && isempty(legendList{3})
+                currPoint = struct('k1', k1, 'n1', n1, 'tau', tau, 'k0', k0);
+                legendList{3} = currPoint;
+            elseif morphology{j}(i) == 4 && isempty(legendList{4})
+                currPoint = struct('k1', k1, 'n1', n1, 'tau', tau, 'k0', k0);
+                legendList{4} = currPoint;
+            end
+            
+        else
+            mList = [mList NaN];
+            k0list = [k0list NaN];
+            k1list = [k1list NaN];
+            n0list = [n0list NaN];
+            taulist = [taulist NaN];
+            n1list = [n1list NaN];
+            elonglist = [elonglist NaN];
+        end
+        end
+        
+    end
+end
+
+xlim([0 .75]);
+ylim([1*10^-5 5.5*10^-5]);
+set(gca, 'FontSize', 14);
+xlabel('time (seconds)');
+ylabel('aspiration depth (\mum)');
+title('Aspiration Depth of Human Embryos');
+
+elonglist = elonglist * 10^5;
+
+%% Scatter plot
+
+numsToPlot = ~isnan(k1list) & ~isnan(n1list) & ~isnan(taulist) ...
+    & ~isnan(mList) & ~isnan(elonglist);
+mN = mList(numsToPlot);
+k1N = k1list(numsToPlot);
+% k1N = (k1N - min(k1N))/(max(k1N)-min(k1N));
+n1N = n1list(numsToPlot);
+% n1N = (n1N - min(n1N))/(max(n1N)-min(n1N));
+tN = taulist(numsToPlot);
+% tN = (tN - min(tN))/(max(tN)-min(tN));
+k0N = k0list(numsToPlot);
+% k0N = (k0N - min(k0N))/(max(k0N)-min(k0N));
+eN = elonglist(numsToPlot);
+n0N = n0list(numsToPlot);
+
+% tLN = timeLapseOut(numsToPlot,:);
+% T1 = tLN(:,1);
+% T2 = tLN(:,2);
+% T3 = tLN(:,3);
+
+figure;
+h = scatter3(k1N, n1N, k0N, 200, colorMat(numsToPlot,:), 'filled');
+% h = scatter(k1N, n1N, 200, colorMat(numsToPlot,:), 'filled');
+
+set(h, 'Marker', 'o');
+set(gca, 'FontSize', 14);
+title('3D scatter plot of parameters');
+xlabel('k1 parameter');
+ylabel('n1 parameter');
+zlabel('k0 parameter');
+axis([min(k1N) max(k1N) min(n1N) max(n1N) min(k0N) max(k0N)]);
+% axis([min(k1N) max(k1N) min(n1N) max(n1N)]);
+
+view([152 20])
+camlight right;
+drawnow;
+hold on;
+
+
+mVal = 4;
+aAll = (1:length(k1list))';
+a = aAll(numsToPlot);% & mList == mVal);
+b = num2str(a);
+c = cellstr(b);
+dx = -0.001; dy = 0.01; dz = .005; % displacement so the text does not overlay the data points
+text(k1N+dx, n1N+dy, k0N+dz, c);
+hold on;
+
+aAll(mList == mVal)'
+
+
+% ======== MAKE LEGEND =========
+handleList = [];
+labelList = cell(1,4);
+colorList = [1 0 0; ...     % red
+             0 0 .6; ...    % dark blue
+             0 .6 .6; ...   % light blue
+             0 .6 0];       % green
+for i = 1:4 
+    if ~isempty(legendList{i})
+        currHandle = scatter3(legendList{i}.k1, legendList{i}.n1, ...
+            legendList{i}.k0, 150, colorList(i,:), 'filled');
+%         currHandle = scatter(legendList{i}.k1, legendList{i}.n1, ...
+%             200, colorList(i,:), 'filled');
+        
+        handleList = [handleList currHandle];
+        if i == 1
+            labelList{1} = 'no blast';
+        elseif i == 2
+            labelList{2} = 'poor blast';
+        elseif i == 3
+            labelList{3} = 'average blast';
+        elseif i == 4
+            labelList{4} = 'good blast';
+        end
+    else
+        labelList{i} = '';
+    end
+end
+legend(handleList, labelList, 'Location', 'NorthWest');
+legend('boxoff');
+legend('boxon');
+legend(handleList, labelList{1}, labelList{2}, labelList{3}, labelList{4}, ...
+    'Location', 'North');
+
+%% Make mean curves +/- standard deviation
+
+figure; 
+set(gca, 'FontSize', 14);
+plot(xfine, 10^6*mean(sumCell{1},1), 'Color', [1 0 0], 'LineWidth', 2);
+hold on;
+plot(xfine, 10^6*mean(sumCell{2},1), 'Color', [0 0 .6], 'LineWidth', 2);
+plot(xfine, 10^6*mean(sumCell{3},1), 'Color', [0 .6 .6], 'LineWidth', 2);
+plot(xfine, 10^6*mean(sumCell{4},1), 'Color', [0 .6 0], 'LineWidth', 2);
+
+h = legend('No Blast', 'Poor Blast', 'Medium Blast', 'Good Blast');
+set(h, 'EdgeColor', [1 1 1]);
+jbfill(xfine, 10^6*(mean(sumCell{1},1)+std(sumCell{1},[],1)), 10^6*(mean(sumCell{1},1)-std(sumCell{1},[],1)), ...
+    [1 0 0], 'none', [], .3);
+jbfill(xfine, 10^6*(mean(sumCell{2},1)+std(sumCell{2},[],1)), 10^6*(mean(sumCell{2},1)-std(sumCell{2},[],1)), ...
+    [0 0 .6], 'none', [], .3);
+jbfill(xfine, 10^6*(mean(sumCell{3},1)+std(sumCell{3},[],1)), 10^6*(mean(sumCell{3},1)-std(sumCell{3},[],1)), ...
+    [0 .6 .6], 'none', [], .3);
+jbfill(xfine, 10^6*(mean(sumCell{4},1)+std(sumCell{4},[],1)), 10^6*(mean(sumCell{4},1)-std(sumCell{4},[],1)), ...
+    [0 .6 0], 'none', [], .3);
+
+xlim([min(xfine) max(xfine)]);
+xlabel('time (seconds)');
+ylabel('aspiration depth (\mum)');
+title('Average Aspiration Depth Curves');
+
+
+%% make animation of scatter plot rotating
+
+angles = -140:2:-50;
+angles = [angles fliplr(angles)];
+elevations = 40*ones(1,length(angles));
+addpath('CaptureFigVid\CaptureFigVid');
+
+CaptureFigVid([angles; elevations]', ...
+    'C:\Users\Livia\Desktop\rotatingScatterPlotHuman.avi');
+
+
+%% Correlate with cell cycle parameters
+
+A = xlsread('C:\Users\Livia\Desktop\IVF\Processed Data\Human analysis\cell cycle parameters.xlsx');
+
+figure;
+% scatter3(A(:,3)', A(:,2)', A(:,4)', 200, colorMat(~isnan(k1list),:), 'filled');
+scatter3( A(:,2)',  A(:,3)', A(:,4)', 200, colorMat(~isnan(k1list),:), 'filled');
+set(gca, 'FontSize', 14);
+xlabel('cell cycle 1');
+ylabel('cell cycle 2');
+zlabel('cell cycle 3');
+title('Human embryo cell cycle parameters')
+
+a = (1:length(k1list(~isnan(k1list))))';
+b = num2str(a);
+c = cellstr(b);
+dx = .05; dy = 1; dz = 1; % displacement so the text does not overlay the data points
+% text(A(:,2)+dx, A(:,3)+dy, A(:,4)+dz, c);
+hold on;
+
+
+%% Plot average curves +/- standard deviation
+
+figure;
+gavg = mean(gsum, 1);
+ravg = mean(rsum, 1);
+
+gstd = std(gsum);
+rstd = std(rsum);
+
+h1 = plot(xfine, gavg, 'Color', [0 .6 0], 'LineWidth', 2);
+hold on;
+% plot(xfine, gavg + gstd, 'Color', [0 .6 0]);
+% plot(xfine, gavg - gstd, 'Color', [0 .6 0]);
+jbfill(xfine, gavg + gstd, gavg - gstd, [0 .6 0], [0 .6 0], 0, .3);
+h2 = plot(xfine, ravg, 'Color', [0 0 .6], 'LineWidth', 2);
+% plot(xfine, ravg + rstd, 'r');
+% plot(xfine, ravg - rstd, 'r');
+jbfill(xfine, ravg + rstd, ravg - rstd, [0 0 .6], [0 0 .6], 0, .3);
+set(gca, 'FontSize', 12);
+title('Aspiration Curves of Fresh Embryos at 1 Cell Stage');
+xlabel('time (s)');
+ylabel('Aspiration Depth (pixels)');
+h3 = legend([h1 h2], 'Survived to Blastocyst (n = 14)', 'Did Not Survive (n = 7)', ...
+    'Location', 'SouthEast');
+set(h3, 'Color', 'none');
+xlim([0 max(xfine)]);
+
+
+
+%% Try changing size according to distance from camera
+
+xRange = max(k1list) - min(k1list);
+yRange = max(n1list) - min(n1list);
+zRange = max(taulist) - min(taulist);
+
+% get 3D view location
+% r = (xRange + yRange + zRange)/6;
+% xView = r*cos(152)*cos(20);
+% yView = r*sin(152)*cos(20);
+% zView = r*sin(20);
+viewLoc = [.6 1.5 .6];
+xView = viewLoc(1);
+yView = viewLoc(2);
+zView = viewLoc(3);
+
+s = sqrt((k1list - xView).^2 + (n1list - yView).^2 + (taulist - zView).^2);
+colorMat = [cCurr; Ck05_13_13];
+h = scatter3(k1list, n1list, taulist, 100./s, colorMat, 'filled');
+
+set(h, 'Marker', 'o');
+set(gca, 'FontSize', 14);
+title('3D scatter plot of parameters');
+xlabel('k1 parameter');
+ylabel('n1 parameter');
+zlabel('tau parameter');
+axis([min(k1list) max(k1list) min(n1list) max(n1list) min(taulist) max(taulist)]);
+view(viewLoc);
+% view(152,20);
+
+a = (1:length(~isnan(k1list)))';
+b = num2str(a);
+c = cellstr(b);
+dx = -0.001; dy = 0.05; dz = .004; % displacement so the text does not overlay the data points
+text(k1list(~isnan(k1list))+dx, n1list(~isnan(k1list))+dy, taulist(~isnan(k1list))+dz, c);
+
+%% Try plotting as spheres
+
+figure;
+hold on;
+xRange = max(k1list) - min(k1list);
+yRange = max(n1list) - min(n1list);
+zRange = max(taulist);
+
+[x y z] = sphere(36);
+C = zeros(size(z,1),size(z,2), 3);
+colorMat = [cCurr; Ck05_13_13];
+
+for i = 1:length(k1list)
+    
+    C(:,:,1) = colorMat(i,1);
+    C(:,:,2) = colorMat(i,2);
+    C(:,:,3) = colorMat(i,3);
+    
+    surf(x*xRange/20 + k1list(i), y*yRange/20 + n1list(i), z*zRange/20 + taulist(i), ...
+        C, 'EdgeColor', 'none');
+    
+    line([k1list(i) k1list(i)], [n1list(i) n1list(i)], [0 taulist(i)], ...
+        'Color', colorMat(i,:), 'LineWidth', 2, 'LineStyle', ':');
+    
+end
+
+set(gca, 'FontSize', 14);
+title('3D scatter plot of parameters');
+xlabel('k1 parameter');
+ylabel('n1 parameter');
+zlabel('tau parameter');
+camlight('headlight');
+camlight('left');
+grid on;
+axis on;
+
+% Create timer object
+htimer = timer('ExecutionMode', 'fixedRate', ...
+    'Period', .1, ...
+    'UserData', 1);
+
+% define camera trail
+h = gca;
+camdist = abs(get(h, 'CameraPosition'));
+dist = max(camdist(1:2));
+center = get(gca,'CameraTarget');
+
+% Define camera trail
+theta = 0:.05:2*pi;
+maxidx = length(theta); % trail indexing
+xdata = center(1)-dist*sin(theta);
+ydata = center(2)- dist*cos(theta);
+zdata = camdist(3);
+
+% Tighten the axes
+dx= reshape(get(get(h,'Children'),'XData'),[],1);
+dy= reshape(get(get(h,'Children'),'YData'),[],1);
+temp = axis;
+axis([min(dx) max(dx) min(dy) max(dy) temp(5) temp(6)]);
+
+set(htimer,'TimerFcn', @(v1,v2)(step));
+
+% Fix Camera View Angle
+CameraViewAngle = get(o.hax,'CameraViewAngle');
+set(o.hax,'CameraViewAngle',CameraViewAngle)
+
+
+

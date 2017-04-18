@@ -1,0 +1,44 @@
+function out = create_inhib_po_cl_distribution(lambda, S_lambda, S_sigma, E_distance, delta, x_side, y_side, z_side)
+% lambda     - intensity
+% S_lambda   - mean nr of offspring per parent event
+% S_sigma    - standard deviation of S
+% E_distance - mean distance from offspring to parent
+% delta      - area of inhibition
+% side       - side of cubic distribution volume
+
+
+parent_intensity = lambda/S_lambda;
+parent_events = floor(parent_intensity * x_side*y_side*z_side);
+parent_pos = rand(parent_events,3)*side;
+xx = parent_pos(:,1);
+yy = parent_pos(:,2);
+zz = parent_pos(:,3);
+
+offspring_pos = [];
+
+for i = 1:parent_events
+    offspring = (floor(randn(1)*S_sigma+S_lambda));
+    j = 0;
+    while j < offspring
+        R = exprnd(E_distance); % exponential function
+        z = rand(1)*2*R - R;
+        theta = rand(1)*2*pi;
+        phi = asin(z/R);
+        [dx dy dz] = sph2cart(theta, phi, R); % random point on sphere of R distance
+        new_pos = [xx(i)+dx yy(i)+dy zz(i)+dz];
+        new_pos = mod(new_pos,side); % wrapping edges
+        discard = 0;
+        for ii = 1:size(offspring_pos,1)
+            distance = w_distance(offspring_pos(ii,:), new_pos);
+            if distance < delta % test if to close another event
+                discard = 1; break;
+            end
+        end
+        if discard == 0
+            offspring_pos = [offspring_pos; new_pos];
+            j = j+1;
+        end
+    end
+end
+out = offspring_pos;
+

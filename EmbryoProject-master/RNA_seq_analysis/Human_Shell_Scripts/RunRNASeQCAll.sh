@@ -1,0 +1,78 @@
+#!/bin/bash
+
+# Part 3 in RNA-seq analysis
+
+# Run RNASeQC and also prepare files for differential expression analysis
+# Works only on mapped reads -- does not take into account unmapped reads. Stats for % of reads mapped can be found in tophat output directories
+
+RNA_SEQC_DIR="/host/Users/Livia/Desktop/IVF/RnaSeqAnalysis/"
+PICARD_DIR="/host/Users/Livia/Desktop/IVF/RnaSeqAnalysis/picard-tools-1.107/picard-tools-1.107/"
+SAMPLE_DIR="/host/Users/Livia/Desktop/IVF/RnaSeqAnalysis/RawData/HumanMiSeq/"
+
+RGLB="libraryName"
+RGPL="Illumina"
+RGPU="barcode"
+
+cd $SAMPLE_DIR
+mkdir -p "./RNA_SeQC_Out/"
+
+declare -a sampleNum=(1 2 3 4 5 6 7 8 9 10 11 12)
+declare -a embryoNum=(1 2 3 4 5 6 7 9 10 12 13 14)
+
+for i in ${sampleNum[@]}
+do
+
+    CURR_EMBRYO_NUM=${embryoNum[$i - 1]}
+    BASENAME="E"$CURR_EMBRYO_NUM
+
+    # Step 1) Take .bam files that TopHat outputs and merge mapped paired end and single reads (not unmapped reads since there is some problem with the formatting
+
+    echo ""
+    echo "now executing samtools merge on E"$CURR_EMBRYO_NUM
+    echo ""
+
+    samtools merge $BASENAME"_mergedhits.bam" $SAMPLE_DIR"TophatOut_"$BASENAME"_paired/accepted_hits.bam" $SAMPLE_DIR"TophatOut_"$BASENAME"_singles/accepted_hits.bam"
+
+    # Step 2) Label sample with read groups, sample names, etc.
+
+    echo ""
+    echo "now executing AddOrReplaceReadGroups on E"$CURR_EMBRYO_NUM
+    echo ""
+
+    java -Xmx4g -jar $PICARD_DIR"AddOrReplaceReadGroups.jar" INPUT=$BASENAME"_mergedhits.bam" OUTPUT=$BASENAME"_mergedhits_RG.bam" RGLB=$RGLB RGPL=$RGPL RGPU=$RGPU RGSM=$BASENAME RGID=1 
+
+    # Step 3) Reorder reads according to order of reference genome
+
+    echo ""
+    echo "now executing ReorderSam on E"$CURR_EMBRYO_NUM
+    echo ""
+
+    java -Xmx4g -jar $PICARD_DIR"ReorderSam.jar" INPUT=$BASENAME"_mergedhits_RG.bam" OUTPUT=$BASENAME"_mergedhits_reorder.bam" REFERENCE=$HUMAN_GENOME_FASTA
+
+    # Step 4) Coordinate sort all reads and create index for .bam file
+
+    echo ""
+    echo "now executing SortSam on E"$CURR_EMBRYO_NUM
+    echo ""
+
+    java -Xmx4g -jar $PICARD_DIR"SortSam.jar" INPUT=$BASENAME"_mergedhits_reorder.bam" OUTPUT=$BASENAME"_mergedhits_final.bam" SORT_ORDER=coordinate VALIDATION_STRINGENCY=SILENT CREATE_INDEX=true
+
+    # Step 5) Run RNA-SeQC and generate report
+
+    echo ""
+    echo "now executing RNA-SeQC on E"$CURR_EMBRYO_NUM
+    echo ""
+
+    java -Xmx4g -jar $RNA_SEQC_DIR"RNA-SeQC.jar" -r $HUMAN_GENOME_FASTA -t $REF_GTF_HUMAN -o "RNA_SeQC_Out/"$BASENAME -s "1|"$BASENAME"_mergedhits_final.bam|none"
+
+    mkdir -p $BASENAME"_bam/"
+    mv *_final.bam $BASENAME"_bam/"
+    mv *_final.bai $BASENAME"_bam/"
+    rm *_RG.bam
+    rm *_reorder.bam
+    rm *_mergedhits.bam
+
+done
+
+
+

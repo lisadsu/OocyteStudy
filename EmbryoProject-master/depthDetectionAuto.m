@@ -1,0 +1,261 @@
+% Livia Zarnescu
+% 1-27-15
+% semi-automated depth detection
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%% FILL IN TYPE AND DATE HERE %%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+type = 'mouse oocyte'; % other values = "human", "mouse embryo" or "mouse oocyte", "other"
+currDate = '1-13-16';
+embryoNum = '1';
+pressureApplied = .2; % psi
+
+nameToSave = 'B1_loc1'; % modify this if using "other"
+dateU = currDate;
+dateUI = strfind(currDate, '-');
+dateU(dateUI) = '_';
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%% MODIFY THESE AS NECESSARY %%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% measure pipette size first!
+currMult = 1;
+% vitStatus = 'post';
+pipSize = 128; 
+manualCorner = 0;
+manualMeasure = 0;
+frameStartMult = .45;
+cannyThresh = .35;
+filePath = 'C:\Users\Livia\Desktop\IVF\';
+
+if isequal(type, 'human')
+    filePath2 = ['Raw Data\Videos\Human\human tests ', currDate, '\'];
+    filePath3 = ['Processed Data\Human\', currDate, ...
+        ' analysis human\'];
+    filePath4 = ['aspiration_data_', dateU, '_human_E'];
+    frameMult = 1.2;
+    cropVal = 1;
+    tauStart = .06;
+    pipSizeRef = 229;
+    Fin = pressureApplied * .86 * 6895 * pi * (35*pipSize/pipSizeRef*10^-6)^2; % pressure*area, 
+    % 229 pixels is standard pipette opening
+    adaptHist = 0;
+elseif isequal(type, 'mouse oocyte')
+    filePath2 = ['Raw Data\Videos\Mouse Oocyte\videos ', currDate, '\'];
+    filePath3 = ['Processed Data\Mouse Oocyte\', currDate, ...
+        ' analysis\'];
+    filePath4 = ['aspiration_data_', dateU, '_E'];
+    frameMult = .8;
+    cropVal = .5;
+    tauStart = .03;
+    pipSizeRef = 126;
+    Fin = pressureApplied * .86 * 6895 * pi * (20*pipSize/pipSizeRef*10^-6)^2; % pressure*area
+    adaptHist = 1;
+elseif isequal(type, 'mouse embryo')
+    filePath2 = ['Raw Data\Videos\Mouse Embryo\videos ', currDate, '\'];
+    filePath3 = ['Processed Data\Mouse embryo\', currDate, ...
+        ' analysis\'];
+    filePath4 = ['aspiration_data_', dateU, '_E'];
+    frameMult = .8;
+    cropVal = .5;
+    tauStart = .03;
+    pipSizeRef = 126;
+    Fin = pressureApplied * .86 * 6895 * pi * (20*pipSize/pipSizeRef*10^-6)^2; % pressure*area
+    % 126 pixels is standard opening
+    adaptHist = 1;
+elseif isequal(type, 'other')
+    % modify this as needed for experiments that don't fit standard
+    % template
+    % this currently doesn't work .. modify if needed
+    [fileName, pathName] = uigetfile('.avi');
+    filePath2 = ['Raw Data\Videos\Mouse Oocyte\videos ', currDate, '\'];
+    filePath3 = ['Processed Data\Mouse oocyte\', currDate, ...
+        ' analysis\'];
+    filePath4 = ['aspiration_data_', dateU, '_E'];
+    frameMult = .8;
+    cropVal = .5;
+    tauStart = .03;
+    pipSizeRef = 126;
+    Fin = pressureApplied * .86 * 6895 * pi * (10*pipSize/pipSizeRef*10^-6)^2; % pressure*area
+    adaptHist = 1;
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%% SHOULD NOT HAVE TO MODIFY CODE PAST THIS POINT %%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+if strcmp(currDate,'11-19') || strcmp(currDate,'11-30')
+    convFactor = 54;
+    pipLarge = 0;
+else
+    convFactor = 128;
+    pipLarge = 1;
+end
+
+% set path of video and time stamp files
+movpath = [filePath filePath2 'E' num2str(embryoNum) '.avi'];
+timepath = [filePath filePath2 'E' num2str(embryoNum) '.txt'];
+
+% read in video and time stamp
+obj = VideoReader(movpath);
+fid = fopen(timepath);
+tcell = textscan(fid, '%f');
+fclose(fid);
+tlist = tcell{1,1};
+tlist = tlist(3:end)';
+frameRate = obj.FrameRate;
+
+% read in frames starting just before aspiration
+% make detection automatic in the future maybe?
+totalFrames = round(frameRate*frameMult);
+currFirstFrame = 1;
+currLastFrame = min(obj.NumberOfFrames - 2, round(frameRate*(frameStartMult+2)));
+
+
+% read in some of the frames, define time vector
+frames = read(obj, [currFirstFrame currLastFrame]);
+tlist = tlist(currFirstFrame:currLastFrame);
+% t = cumsum(tlist);
+% t = t - min(t);
+% t = t/1000;
+t = 0:1/frameRate:(currLastFrame-currFirstFrame)/frameRate;
+
+% convert frames to grayscale and double format
+s = size(frames);
+numFrames = s(4);
+newframes = zeros(size(frames,1), size(frames,2), numFrames);
+for i = 1:numFrames
+    if s(3) > 1
+        % take each frame and make it grayscale
+        newframes(:,:,i) = double(rgb2gray(frames(:,:,:,i)))/255;
+    else
+        newframes(:,:,i) = double(frames(:,:,i))/255;
+    end
+end
+
+clear frames;
+framesToGet = round(frameRate*frameMult);
+
+% choose ROI starting at pipette opening
+% bottom bound should not be below bottom of pipette
+[coords, ROIframes] = getROI(newframes, manualCorner, cannyThresh);
+% ROIframes = GetPipetteROI(newframes, cannyThresh, NaN, [filePath filePath2]);
+sROI = size(ROIframes);
+size(newframes)
+clear newframes;
+
+if manualMeasure
+    
+    numAvgs = 1;
+    
+    % average manual measurements numAvgs times
+    aspiration_vals = zeros(1, length(tlist));
+    
+    for ii = 1:numAvgs
+
+        % depth detection
+        % eventually automate this
+        manual_depth = GetAspirationDepthManual(framesToGet, ...
+            ROIframes(:,:,round(frameStartMult*frameRate):end));
+        
+        % adjust for varying vector lengths
+        % chop off end if there is mismatch
+        minLength = min(size(manual_depth,2), size(t,2));
+        t = t(1:minLength);
+        minLength = min(size(aspiration_vals,2),size(manual_depth,2));
+        aspiration_vals = aspiration_vals(1:minLength) + manual_depth(1:minLength);
+                
+        ii
+        pause(2);
+        
+    end
+    
+    aspiration_depth = aspiration_vals / numAvgs;
+
+else
+    aspiration_depth = ...
+        GetAspirationDepthAuto(framesToGet, ...
+        ROIframes(:,:,round(frameStartMult*frameRate):end), adaptHist);
+end
+
+
+% Fit to Model
+close all;
+t = t(t < cropVal);
+aspiration_depth = aspiration_depth(1:length(t));
+A = (aspiration_depth-6) * 40 * 10^-6 / convFactor; % convert from pixels to meters
+
+figure(5);
+clf;
+
+tauTryList = .02:.02:.2;
+fValList = [];
+
+for kk = 1:length(tauTryList)
+    
+    start_params(1) = .2; % k0
+    start_params(2) = .2; % k1
+    start_params(3) = tauTryList(kk);%tauStart; % tau
+    start_params(4) = 5; % n1_inv (slope of creep)
+    
+    [xfine yfit k0 k1 n0 n1 F0 tau fval] = KelvinFit3(t, A, Fin, 1, start_params);
+    fValList = [fValList fval];
+end
+
+figure(5);
+clf;
+start_params(3) = tauTryList(fValList == min(fValList));
+[xfine yfit k0 k1 n0 n1 F0 tau fval] = KelvinFit3(t, A, Fin, 1, start_params);
+fval
+[k1 n1 tau k0]
+% ylim([1*10^-5 max(yfit)*1.2]);
+
+
+% save params if good
+if ~exist([filePath filePath3], 'dir')
+    mkdir([filePath filePath3]);
+end
+    
+% make sure directories to save data exist, and then save
+% if auto measure, compare to previous manual measurement
+if manualMeasure
+    
+    save([filePath filePath3 filePath4 num2str(embryoNum) ...
+        '.mat'], 'xfine', 'yfit', ...
+        'k0', 'k1', 'n0', 'n1', 'tau', 'F0', 'fval', 't', ...
+        'aspiration_depth', 'A');
+    
+%     pause;
+    % compare automatic measurement to previously done manual one to see if
+    % it's accurate
+    if exist([filePath filePath3 'AutoMeasure\' filePath4 num2str(embryoNum) '.mat']);
+        load([filePath filePath3 'AutoMeasure\' filePath4 num2str(embryoNum) '.mat']);
+        KelvinFit3(t, A, Fin, 1, [k0 k1 tau n1]);
+    end
+
+else
+    
+    % save params if good
+    if ~exist([filePath filePath3 'AutoMeasure\'], 'dir')
+        mkdir([filePath filePath3], 'AutoMeasure');
+    end
+    
+    save([filePath filePath3 'AutoMeasure\' filePath4 num2str(embryoNum) ...
+        '.mat'], 'xfine', 'yfit', ...
+        'k0', 'k1', 'n0', 'n1', 'tau', 'F0', 'fval', 't', ...
+        'aspiration_depth', 'A');
+    
+%     pause;
+    % compare automatic measurement to previously done manual one to see if
+    % it's accurate
+    
+    if exist([filePath filePath3 filePath4 num2str(embryoNum) '.mat'])
+        load([filePath filePath3 filePath4 num2str(embryoNum) '.mat']);
+        KelvinFit3(t, A, Fin, 1, [k0 k1 tau n1], [1 0 0]);
+    end
+    
+end
+
+

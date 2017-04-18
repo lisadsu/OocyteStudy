@@ -1,0 +1,75 @@
+function out = Compare_Groups(dist1, dist2, t, name1, name2)
+% Compare_Groups(dist1, dist2, t, name1, name2)
+
+% Some parameters from the data
+EK = t.*t.*t*4/3*pi;
+nbr_of_events1 = Get_nbr_of_dists(dist1);
+nbr_of_events2 = Get_nbr_of_dists(dist2);
+
+% Initiate plotting
+figure('Name','Comparing sets','Position',[0 0 1000 600]);
+subplot(2,2,1);grid on, hold on
+title(['Red - ',name1,10,'Blue - ',name2]);
+xlabel('t'); ylabel('K(t)');
+% Build arrays with K values
+array_1 = zeros(length(dist1),length(t));
+for i = 1:length(dist1)
+    array_1(i,:) = dist1{i}.K;
+    plot(t,array_1(i,:),'r-');
+end
+wa_1 = wa(array_1,nbr_of_events1');
+plot(t, wa_1,'-sr','LineWidth',2,'MarkerEdgeColor','k','MarkerFaceColor','r','MarkerSize',2)
+array_2 = zeros(length(dist2),length(t));
+for i = 1:length(dist2)
+    array_2(i,:) = dist2{i}.K;
+    plot(t,array_2(i,:),'b-');
+end
+wa_2 = wa(array_2,nbr_of_events2');
+plot(t, wa_2,'-sb','LineWidth',2,'MarkerEdgeColor','k','MarkerFaceColor','b','MarkerSize',2)
+
+% Calculate confidence intervals
+res1 = resid(array_1, nbr_of_events1', wa_1);
+boots1 = kboot(array_1, nbr_of_events1', res1, 1000, 'within');
+[low1 up1 var1] = kci(boots1);
+res2 = resid(array_2, nbr_of_events2', wa_2);
+boots2 = kboot(array_2, nbr_of_events2', res2, 1000, 'within');
+[low2 up2 var2] = kci(boots2);
+
+subplot(2,2,2); hold on
+plot(t, wa_1-EK,'Color', 'r', 'Linewidth', 2);
+plot(t, low1-EK, 'Color', 'r', 'Linewidth', 1, 'Linestyle', '-.')
+plot(t, up1-EK, 'Color', 'r', 'Linewidth', 1, 'Linestyle', '-.')
+plot(t, wa_2-EK,'Color', 'b', 'Linewidth', 2);
+plot(t, low2-EK, 'Color', 'b', 'Linewidth', 1, 'Linestyle', '-.')
+plot(t, up2-EK, 'Color', 'b', 'Linewidth', 1, 'Linestyle', '-.')
+title(['95% Confidence intervals',10,'Red - ',name1,10,'Blue - ',name2]);
+xlabel('t'),ylabel('K(t)- E(K(t))')
+
+% Comparing between groups
+boots_12=kboot({array_1 array_2},{nbr_of_events1' nbr_of_events2'},{res1 res2},1000,'between');
+result=btss({array_1 array_2},{nbr_of_events1' nbr_of_events2'},t,boots_12);
+p=result.p;
+BTSS=result.BTSS;
+xBTSS=result.BTSSdist(1,:);
+fBTSS=result.BTSSdist(2,:);
+
+subplot(2,2,3), hold on, grid on
+plot(xBTSS,fBTSS,'k','LineWidth',3)
+plot(BTSS,0,'ks','MarkerSize',10,'MarkerFaceColor','r')
+title(['Between Group comparations', 10, 'Set ' name1 ' and ' name2, 10, 'P-value =' num2str(p)]);
+xlabel('Bootstrapped BTSS values')
+ylabel('Accumulated probability')
+
+% P values
+
+% Calculate the P values
+[p x f] = pval(meanK, CSR_array, t);
+
+% Plot the p-values
+subplot(2,2,2)
+plot(t,p,'g','LineWidth',3), hold on, grid on
+hold on, plot(t,repmat(0.05,1,length(t)),'--k','LineWidth',3)
+title('Difference has significance below black line')
+xlabel('t'),ylabel('p')
+hold off
+
