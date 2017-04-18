@@ -1,3 +1,8 @@
+close all
+clear all
+
+%figuring out git
+
 % parameter extraction for human oocyte measurements
 % based off depthDetectionAuto.m but more generalized
 % no pressure file saved in clinical system, video only so relies on known
@@ -8,21 +13,12 @@
 
 % Newest edits to handle data from Lab Desktop
 % Lisa Su
-% 4-13-17
+% 4-17-17
 
-nameToSave = '1'; 
+ 
 manualPip = 1; % detect pipette edge based off its corner or not
-manualCorner = 0; % manually select ROI
-manualMeasure = 0;
-
-% addpath('C:\Users\Livia\Desktop\IVF\Code\EmbryoProject');
-% addpath('C:\Users\Livia\Desktop\IVF\Code\EmbryoProject\functions');
-% addpath('C:\Users\Livia\Desktop\IVF\Code\EmbryoProject\OocyteStudies');
-
-%when using desktop in the corner
-addpath('C:\Users\CamLab\Desktop\Lisa\EmbryoProject-master');
-addpath('C:\Users\CamLab\Desktop\Lisa\EmbryoProject-master\functions');
-addpath('C:\Users\CamLab\Desktop\Lisa\EmbryoProject-master\OocyteStudies');
+manualCorner = 1; % manually select ROI
+manualMeasure = 1;
 
 % basePath = 'C:/Users/Livia/Desktop/IVF/Raw Data/Videos/Human/HumanOocyteMeas';
 %Find videos on the server
@@ -30,12 +26,14 @@ basePath = 'Z:\Data\IVF\OocyteClinicalStudy\RawData';
 
 cd(basePath);
 [fileName, pathName] = uigetfile('*.avi');
-pipSize = 30; % total pipette diameter
-pressureApplied = .1; %%%DOES THIS NEED TO CHANGE? to 0.345psi? 
+nameToSave = strcat(fileName,'_depth');
+
+pipSize = 70; % total pipette diameter
+pressureApplied = .345; %%%DOES THIS NEED TO CHANGE? to 0.345psi? 
 frameStartMult = .45; % seconds at which to start video
 frameMult = 1.2; % how many seconds of video to load
-cannyThresh = .35;
-convFactor = 2.27; % pixels / micron on clinical system
+cannyThresh = .35; %Not Using,used to create outlines for automated finding
+%convFactor = 2.27; % pixels / micron on clinical system %Don't use this, totally useless
 cropVal = 1;
 
 % read in video
@@ -47,7 +45,7 @@ newframes = newframes(:,:,1:round(frameMult*frameRate));
 
 % get pipette ROI
 % make new pipette reference if one does not already exist
-if manualPip
+% if manualPip
     [~, ROIframes] = getROI(newframes, manualCorner, cannyThresh);
     
     if ~exist('pipRefOpeningPixels', 'var')
@@ -57,19 +55,25 @@ if manualPip
         h = helpdlg('Click on inner edges of pipette');
         pause(.5);
         close(h);
+%         [x,~] = ginput(2);
+%         pipRefOpeningPixels = abs(round(x(2) - x(1))); %gives you how wide the opening is in pixels
         [~,y] = ginput(2);
         pipRefOpeningPixels = abs(round(y(2) - y(1)));
+        convFactor = pipRefOpeningPixels/pipSize; %Find conversion factor from pipette opening size
     end
-else
-    ROIframes = GetPipetteROI(newframes, cannyThresh, NaN, pathName, 0);
-    load([pathName 'pipRef.mat']);
-end
+% else
+%     ROIframes = GetPipetteROI(newframes, cannyThresh, NaN, pathName, 0);
+%     load([pathName 'pipRef.mat']); %Not sure what this does? This part is
+%     for automated pipette finding
+% end
 
 clear newframes;
 t = 0:(1/frameRate):((size(ROIframes,3)-1)/frameRate);
-Fin = pressureApplied * .867 * 6895 * pi * ...
-    ((pipRefOpeningPixels/(convFactor*2))*10^-6)^2; % pressure*area,
+%Fin = pressureApplied * .867 * 6895 * pi * ...
+    %((pipRefOpeningPixels/(convFactor*2))*10^-6)^2; % pressure*area, seems
+    %to account for the pipette size being different in some way?
 
+Fin = pressureApplied * 6894.744 * pi* (pipSize/2*(10^-6))^2 %Pressure*conv to N/m^2 * area in m^2
 
 
 % meas offsetVal (initial depth offset inside pipette with only holding pressure)
@@ -83,7 +87,7 @@ close(h);
 
 
 % measure parameters
-if manualMeasure
+% if manualMeasure
        
     % depth detection
     % eventually automate this
@@ -95,10 +99,10 @@ if manualMeasure
     t = t(1:minLength);
     aspiration_depth = aspiration_depth(1:minLength);
 
-else
-    aspiration_depth = ...
-        GetAspirationDepthAuto(size(ROIframes,3), ROIframes, 0);
-end
+%else
+%     aspiration_depth = ...
+%         GetAspirationDepthAuto(size(ROIframes,3), ROIframes, 0);
+% end
 
 
 % Fit to Model
