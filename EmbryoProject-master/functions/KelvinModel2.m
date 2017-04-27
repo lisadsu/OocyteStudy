@@ -5,7 +5,8 @@ k1 = params(2);
 tau = params(3);
 n1_inv = params(4);
 
-ycalc = F0/k1*(1 - k0/(k0+k1)*exp(-xdata/tau)) + xdata*F0*n1_inv;
+%ycalc = F0/k1*(1 - k0/(k0+k1)*exp(-xdata/tau)) + xdata*F0*n1_inv; %livia's
+ycalc = F0/k1*(1 - k0/(k0+k1)*exp(-xdata/tau)) - xdata*F0*n1_inv; %lisa change 
 
 % adjust height of first point of ydata depending on what the current
 % values of k0 and k1 are

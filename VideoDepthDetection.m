@@ -109,12 +109,16 @@ close(h);
 % A is in METERS
 % aspiration_depth is in PIXELS
 close all;
+
 t = t(t < cropVal);
 aspiration_depth = aspiration_depth(1:length(t));
-aspiration_depth = aspiration_depth(aspiration_depth > 0);
-t = t(1:length(aspiration_depth));
+aspiration_depth = aspiration_depth(aspiration_depth-offsetVal > 20); %Only take points after it's moved
+%t = t(1:length(aspiration_depth));
 A = (aspiration_depth - offsetVal) * 10^-6 / convFactor; % convert from pixels to meters
-
+%addzero point to beginning
+A(2:end+1)=A;
+A(1)=0; 
+t = t(1:length(A));
 figure(5);
 clf;
 
