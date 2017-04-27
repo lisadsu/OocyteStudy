@@ -2,9 +2,7 @@ close all
 clear all
 
 % Depth Detection (pixels only) for Oocyte Videos
-%exports a .mat with time, aspiration_depth (in pixels), offsetVal (initial
-%position of oocyte in pixels), and positions of pipette corners in pixels
-%(y value only).
+%exports a .mat with time, aspiration_
 
 % based off depthDetectionAuto.m but more generalized
 % no pressure file saved in clinical system, video only so relies on known
