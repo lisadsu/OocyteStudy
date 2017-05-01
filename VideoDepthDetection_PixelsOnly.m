@@ -4,18 +4,15 @@ clear all
 % Depth Detection (pixels only) for Oocyte Videos
 %exports a .mat with time, aspiration_depth (in pixels), offsetVal (initial
 %position of oocyte in pixels), and positions of pipette corners in pixels
-%(y value only).
+%(y value size top - bottom).
 
 % based off depthDetectionAuto.m but more generalized
 % no pressure file saved in clinical system, video only so relies on known
-% pressure
+% pressure by Livia Zarnescu Yanez  7-5-16
 
-% Livia Zarnescu Yanez
-% 7-5-16
-
-% Newest edits to handle data from Lab Desktop
+% Newest edits 
 % Lisa Su
-% 4-24-17
+
 
  
 manualPip = 1; % detect pipette edge based off its corner or not
