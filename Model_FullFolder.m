@@ -13,6 +13,7 @@ files = dir(directory_name);
 
 fileIndex = find(~[files.isdir]);
 
+%mastermat = zeros(length(fileIndex),5);
 for i = 1:length(fileIndex)
 
 fileName = files(fileIndex(i)).name;
@@ -70,16 +71,28 @@ start_params(3) = tauTryList(fValList == min(fValList));
 [xfine, yfit, k0, k1, n0, n1, F0, tau, fval] = KelvinFit3(t, A, Fin, 1, start_params);
 if(fileName(9) == '.')
     title(fileName(1:8));
+    names(i) ={fileName(1:8)}
 else
     title(fileName(1:9));
+    names(i) ={fileName(1:9)}
 end
 
 nameToSave
 fval
 [k1 n1 tau k0]
 
+mastermat(i,2) = k0;
+mastermat(i,3) = k1; 
+mastermat(i,4) = n0;
+mastermat(i,5) = n1; 
 
 save(['Z:\Data\IVF\OocyteClinicalStudy\RawData\BatchParameters\' nameToSave '.mat'], 'xfine', 'yfit', 'k0', 'k1', 'n0', 'n1', 'tau', 'F0', 'fval', 't', 'aspiration_depth', 'A', 'offsetVal');
-    
-clearvars -except fileIndex files directory_name basePath
+
+clearvars -except fileIndex files directory_name basePath mastermat names
 end
+
+names = names'
+
+cd('Z:\Data\IVF\OocyteClinicalStudy\RawData\'); %move to outer folder
+xlswrite('alldata.xlsx',{names},'Sheet1','A1')
+xlswrite('alldata.xlsx',mastermat,'Sheet1','B1')

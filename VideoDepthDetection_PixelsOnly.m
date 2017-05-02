@@ -72,7 +72,7 @@ t = 0:(1/frameRate):((size(ROIframes,3)-1)/frameRate);
     %((pipRefOpeningPixels/(convFactor*2))*10^-6)^2; % pressure*area, seems
     %to account for the pipette size being different in some way?
 
-Fin = pressureApplied * 6894.744 * pi* (pipSize/2*(10^-6))^2 %Pressure*conv to N/m^2 * area in m^2
+Fin = pressureApplied * 6894.744 * pi* (pipSize/2*(10^-6))^2; %Pressure*conv to N/m^2 * area in m^2
 
 
 % meas offsetVal (initial depth offset inside pipette with only holding pressure)
@@ -121,7 +121,7 @@ aspiration_depth(2:end+1)=aspiration_depth;
 aspiration_depth(1)=0; 
 
 t = t(1:length(A));
-figure(5);
+figure();
 clf;
 
 % tauTryList = .02:.02:.2;
