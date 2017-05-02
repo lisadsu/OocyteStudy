@@ -4,18 +4,15 @@ clear all
 % Depth Detection (pixels only) for Oocyte Videos
 %exports a .mat with time, aspiration_depth (in pixels), offsetVal (initial
 %position of oocyte in pixels), and positions of pipette corners in pixels
-%(y value only).
+%(y value size top - bottom).
 
 % based off depthDetectionAuto.m but more generalized
 % no pressure file saved in clinical system, video only so relies on known
-% pressure
+% pressure by Livia Zarnescu Yanez  7-5-16
 
-% Livia Zarnescu Yanez
-% 7-5-16
-
-% Newest edits to handle data from Lab Desktop
+% Newest edits 
 % Lisa Su
-% 4-24-17
+
 
  
 manualPip = 1; % detect pipette edge based off its corner or not
@@ -75,7 +72,7 @@ t = 0:(1/frameRate):((size(ROIframes,3)-1)/frameRate);
     %((pipRefOpeningPixels/(convFactor*2))*10^-6)^2; % pressure*area, seems
     %to account for the pipette size being different in some way?
 
-Fin = pressureApplied * 6894.744 * pi* (pipSize/2*(10^-6))^2 %Pressure*conv to N/m^2 * area in m^2
+Fin = pressureApplied * 6894.744 * pi* (pipSize/2*(10^-6))^2; %Pressure*conv to N/m^2 * area in m^2
 
 
 % meas offsetVal (initial depth offset inside pipette with only holding pressure)
@@ -124,7 +121,7 @@ aspiration_depth(2:end+1)=aspiration_depth;
 aspiration_depth(1)=0; 
 
 t = t(1:length(A));
-figure(5);
+figure();
 clf;
 
 % tauTryList = .02:.02:.2;

@@ -45,7 +45,7 @@ yfit = F0/k1*(1 - k0/(k0+k1)*exp(-xfine/tau)) + xfine*F0*n1_inv;
 if (plot_input == 1)
     % figure;
    plot(t, 10^6*[F0/(k0 + k1) aspiration_depth(1:end-1)],'ob', 'Color', colorIn); %Livia has scaled by this much, why?
-
+%axis([0 0.4 110 120])
    hold on 
    %plot(t,10^6 *aspiration_depth,'ob', 'Color', colorIn);
 

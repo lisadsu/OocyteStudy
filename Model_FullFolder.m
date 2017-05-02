@@ -1,22 +1,36 @@
 %model only
 %load depthdata, tries to use the model (kelvinFit3 and Kelvinmodel2)
-%out of date, does one at a time
 clear all
 close all
 
 basePath = 'Z:\Data\IVF\OocyteClinicalStudy\RawData\DepthData';
 
 cd(basePath);
-[fileName, pathName] = uigetfile('*.mat');
-nameToSave = strcat(fileName,'_parameters');
+%[fileName, pathName] = uigetfile('*.mat');
+
+directory_name = uigetdir;
+files = dir(directory_name);
+
+fileIndex = find(~[files.isdir]);
+
+%mastermat = zeros(length(fileIndex),5);
+for i = 1:length(fileIndex)
+
+fileName = files(fileIndex(i)).name;
+% Do stuff
+if(fileName(9) == '.')
+    nameToSave = strcat(fileName(1:8),'_parameters');
+else
+    nameToSave = strcat(fileName(1:9),'_parameters');
+end
 
 load(fileName)
 pressureApplied = 0.345; %psi
 pipSize = 70; %micron
-Fin = pressureApplied * 6894.744 * pi* (pipSize/2*(10^-6))^2 %Pressure*conv to N/m^2 * area in m^2
+Fin = pressureApplied * 6894.744 * pi* (pipSize/2*(10^-6))^2; %Pressure*conv to N/m^2 * area in m^2
 %convFactor = pipRefOpeningPixels/70; %Find conversion factor from pipette opening size (pixel/micron)
 
-convFactor = 2.27
+convFactor = 2.27;
 %A = (aspiration_depth - offsetVal) * 10^-6 / convFactor;
 %A = aspiration_depth * 10^-6 / convFactor;% convert from pixels to meters
 % %addzero point to beginning
@@ -29,8 +43,8 @@ t = t(t < cropVal);
 aspiration_depth = aspiration_depth(1:length(t));
 
 A = (aspiration_depth-offsetVal) * 10^-6 / convFactor;% convert from pixels to microns
-A = A(2:end) %get rid of last point later
-t = t(1:end-1)
+A = A(2:end); %get rid of last point later
+t = t(1:end-1);
 %addzero point to beginning
 % A(2:end+1)=A;
 % A(1)=0; 
@@ -55,10 +69,30 @@ figure();
 clf;
 start_params(3) = tauTryList(fValList == min(fValList));
 [xfine, yfit, k0, k1, n0, n1, F0, tau, fval] = KelvinFit3(t, A, Fin, 1, start_params);
+if(fileName(9) == '.')
+    title(fileName(1:8));
+    names(i) ={fileName(1:8)}
+else
+    title(fileName(1:9));
+    names(i) ={fileName(1:9)}
+end
+
+nameToSave
 fval
 [k1 n1 tau k0]
 
+mastermat(i,2) = k0;
+mastermat(i,3) = k1; 
+mastermat(i,4) = n0;
+mastermat(i,5) = n1; 
 
-save(['Z:\Data\IVF\OocyteClinicalStudy\RawData\BatchParameters\' nameToSave '.mat'], 'xfine', 'yfit', ...
-        'k0', 'k1', 'n0', 'n1', 'tau', 'F0', 'fval', 't', ...
-        'aspiration_depth', 'A', 'offsetVal');
+save(['Z:\Data\IVF\OocyteClinicalStudy\RawData\BatchParameters\' nameToSave '.mat'], 'xfine', 'yfit', 'k0', 'k1', 'n0', 'n1', 'tau', 'F0', 'fval', 't', 'aspiration_depth', 'A', 'offsetVal');
+
+clearvars -except fileIndex files directory_name basePath mastermat names
+end
+
+names = names'
+
+cd('Z:\Data\IVF\OocyteClinicalStudy\RawData\'); %move to outer folder
+xlswrite('alldata.xlsx',{names},'Sheet1','A1')
+xlswrite('alldata.xlsx',mastermat,'Sheet1','B1')
